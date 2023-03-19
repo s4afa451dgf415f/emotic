@@ -4,6 +4,7 @@ import store from '../store';
 
 const http=axios.create({
     baseURL:'/api',
+    // baseURL:'https://Tu-Chuang.ccyellowstar.repl.co',
     timeout:10000,
 })
 

@@ -21,6 +21,7 @@
 <script>
 import Cookie from 'js-cookie'
 import { getMenu } from '../api'
+import md5 from '../utils/md5.js'
 import Main from "@/views/Main";
 
 export default {
@@ -30,8 +31,8 @@ export default {
   data() {
     return {
       form: {
-        username: '',
-        password: ''
+        username: 'NGzhinengyanjiusuo',
+        password: '123456'
       }
     }
   },
@@ -42,6 +43,7 @@ export default {
         this.$message.error('用户名和密码不能为空');
         return;
       }
+      // this.form.password=md5(this.form.password)
       getMenu(this.form).then(({data}) => {
         if (data.code === 20000) {
           // token信息存入cookie用于不同页面间的通信

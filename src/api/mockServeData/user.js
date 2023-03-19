@@ -29,7 +29,7 @@ for (let i = 0; i < count; i++) {
       scale: Mock.Random.float(0, 5, 0, 4),
       upTime: Mock.Random.date(),
       audit: Mock.Random.integer(0, 1),
-      imageUrl:Mock.Random.dataImage("100x100")
+      fileList:Array.from({ length: Math.floor(Math.random()*5)+1 },()=>Mock.Random.dataImage("100x100"))
     })
   )
 }
@@ -74,7 +74,7 @@ export default {
    * @return {{code: number, data: {message: string}}}
    */
   createUser: config => {
-    const { tags, other, scale,  audit,imageUrl } = JSON.parse(config.body)
+    const { tags, other, scale,  audit,fileList } = JSON.parse(config.body)
     const upTime=new Date().toLocaleDateString();
     List.unshift({
       id: Mock.Random.guid(),
@@ -83,7 +83,7 @@ export default {
       scale: scale,
       upTime:upTime ,
       audit: audit,
-      imageUrl:imageUrl,
+      fileList:fileList,
     })
     return {
       code: 20000,
@@ -134,7 +134,7 @@ export default {
    * @return {{code: number, data: {message: string}}}
    */
   updateUser: config => {
-    const { id, tags, other, scale, upTime, audit,imageUrl } = JSON.parse(config.body)
+    const { id, tags, other, scale, upTime, audit,fileList } = JSON.parse(config.body)
     const audit_num = parseInt(audit)
     List.some(u => {
       if (u.id === id) {
@@ -142,7 +142,7 @@ export default {
         u.other = other
         u.scale = scale
         u.upTime = upTime
-        u.imageUrl =imageUrl
+        u.fileList =fileList
         u.audit = audit_num
         return true
       }

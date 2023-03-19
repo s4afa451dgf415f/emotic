@@ -1,24 +1,30 @@
       <template>
         <div class="manage">
           <el-dialog
-              title="提示"
+              :title="modalType?'审核/编辑':'新增'"
               :visible.sync="dialogVisible"
               width="50%"
               :before-close="handleClose">
             <!-- 用户的表单信息 -->
             <el-form ref="form" :rules="rules" :inline="true" :model="form" label-width="80px">
-              <el-form-item label="上传表情" prop="imageUrl">
-                <el-upload
-                    class="avatar-uploader"
-                    action="#"
-                    :show-file-list="false"
-                    :on-error="handleAvatarSuccess"
-                    :before-upload="beforeAvatarUpload">
-                  <img v-if="form.imageUrl" :src="form.imageUrl" class="avatar">
-                  <i v-else class="el-icon-plus avatar-uploader-icon"></i>
-                </el-upload>
-              </el-form-item>
-              <el-form-item label="Tag" prop="tags">
+              <div class="uploader">
+                <!-- 点击上传按钮 -->
+                <el-button type="primary" size="medium" @click="onUpload">上传表情（可多选）</el-button>
+
+                <!-- 图片展示九宫格 -->
+                <div class="grid-container">
+                  <el-col :span="8" v-for="(item, index) in form.fileList" :key="index">
+                    <div class="grid-item">
+                      <img :src="item" alt="图片" />
+                      <el-button size='mini' type="danger" icon="el-icon-delete" circle class="delete-btn" @click="deleteItem(index)"></el-button>
+                    </div>
+                  </el-col>
+                </div>
+
+                <!-- 图片上传组件 -->
+                <input type="file" ref="uploadInput" style="display:none;" multiple @change="uploadFiles($event.target.files)">
+              </div>
+              <el-form-item label="Tag" prop="tags" style="margin-right: 60px;">
                 <el-tag
                     :key="tag.name"
                     v-for="tag in form.tags"
@@ -41,14 +47,14 @@
                   New Tag
                 </el-button>
               </el-form-item>
-              <el-form-item label="是否审核" prop="audit" v-if=token>
-                <el-select v-model="form.audit" placeholder="请选择">
+              <el-form-item label="是否审核" prop="audit" v-if=token style="margin-right: 60px;">
+                <el-select v-model="form.audit" placeholder="请选择" style="width: 120px;">
                   <el-option label="是" :value="1"></el-option>
                   <el-option label="否" :value="0"></el-option>
                 </el-select>
               </el-form-item>
-              <el-form-item label="备注" prop="other">
-                <el-input type='textarea' :rows="10" placeholder="请输入备注" v-model="form.other"></el-input>
+              <el-form-item label-width="92px" label="上传者(可选)" prop="other" style="white-space: nowrap;">
+                <el-input    v-model="form.other"></el-input>
               </el-form-item>
             </el-form>
 
@@ -79,19 +85,21 @@
                 :data="tableData"
                 style="width: 100%">
               <el-table-column
-                  prop="imageUrl"
+                  prop="fileList"
                   label="表情">
                 <template slot-scope="scope">
-                  <el-image
-                      style="width: 80px; height: 80px; background-color:rgb(245,247,250); "
-                      ref="myImg"
-                      :src="scope.row.imageUrl"
-                      :zoom-rate="1.2"
-                      fit="fill"
-                      :preview-src-list=
-                          '[scope.row.imageUrl]'
-                  >
-                  </el-image>
+                  <el-badge :value="scope.row.fileList.length" class="item" type="primary" >
+                    <el-image
+                        style="width: 80px; height: 80px; background-color:rgb(245,247,250); "
+                        ref="myImg"
+                        :src="scope.row.fileList[0]"
+                        :zoom-rate="1.2"
+                        fit="fill"
+                        :preview-src-list=
+                            'scope.row.fileList'
+                    >
+                    </el-image>
+                  </el-badge>
                 </template>
               </el-table-column>
               <el-table-column
@@ -129,14 +137,14 @@
               </el-table-column>
               <el-table-column
                   prop="other"
-                  label="备注">
+                  label="上传者">
               </el-table-column>
               <el-table-column
                   prop=""
                   label="操作"
                   v-if="token">
                 <template slot-scope="scope">
-                  <el-button size="mini" @click="handleEdit(scope.row)">编辑</el-button>
+                  <el-button size="mini" @click="handleEdit(scope.row)">审核/编辑</el-button>
                   <el-button type="danger" size="mini" @click="handleDelete(scope.row)">删除</el-button>
                 </template>
               </el-table-column>
@@ -165,7 +173,8 @@
             tagsButton: true,
             dialogVisible: false,
             form: {
-              imageUrl: '',
+              fileList: [], // 存储上传的图片列表
+              // imageUrl: '',
               tags: [],
               scale: '',
               audit: '',
@@ -173,7 +182,7 @@
               other: '',
             },
             rules: {
-              imageUrl: [{required: true, message: '请上传表情'}],
+              fileList: [{required: true, message: '请上传表情'}],
               tags: [
                 {required: true, message: '请至少选择一个标签'}
               ],
@@ -196,6 +205,48 @@
           }
         },
         methods: {
+          onUpload() {
+            this.$refs.uploadInput.click();
+          },
+
+          // 选择文件后上传
+          uploadFiles(files) {
+            console.log(this.form.fileList,files)
+            // 最多上传9张图片
+            if (this.form.fileList.length + files.length > 9) {
+              this.$message.error("最多只能上传9张图片");
+              return;
+            }
+            // 遍历选择的文件并上传
+            for (let i = 0; i < files.length; i++) {
+              const file = files[i];
+              // let temp=['image/jpeg','image/png','image/gif','image/bmp','image/svg']
+              const isLt2M = file.size / 1024 / 1024 < 10;
+              // if (!temp.includes(file.type)) {
+              //   this.$message.error('图片格式只能为JPEG、PNG、GIF、BMP、SVG！');
+              //   return ;
+              // }
+              if (!isLt2M) {
+                this.$message.error('上传表情图片大小不能超过 10MB!');
+                return ;
+              }
+              const reader = new FileReader();
+
+              // 读取文件内容并转成Base64编码
+              reader.readAsDataURL(file);
+              reader.onload = () => {
+                const url = reader.result;
+
+                // 添加到图片列表中
+                this.form.fileList.push(url);
+              };
+            }
+          },
+
+          // 删除图片
+          deleteItem(index) {
+            this.form.fileList.splice(index, 1);
+          },
           //排序
           sortTable(name){       //排序
             console.log(this.token)
@@ -229,18 +280,6 @@
             this.inputVisible = false;
             this.inputValue = '';
           },
-          //上传图片
-          handleAvatarSuccess(res, file) {
-            this.form.imageUrl = URL.createObjectURL(file.raw);
-            this.form.scale = (file.raw.size / 1000000).toFixed(4)
-          },
-          beforeAvatarUpload(file) {
-            const isLt2M = file.size / 1024 / 1024 < 10;
-            if (!isLt2M) {
-              this.$message.error('上传表情图片大小不能超过 10MB!');
-            }
-            return isLt2M;
-          },
           // 提交用户表单
           submit() {
             this.$refs.form.validate((valid) => {
@@ -262,6 +301,7 @@
                 // 清空表单的数据
                 this.$refs.form.resetFields()
                 this.form.tags = []
+                this.form.fileList = []
                 // 关闭弹窗
                 this.dialogVisible = false
               }
@@ -270,7 +310,7 @@
           // 弹窗关闭的时候
           handleClose() {
             this.$refs.form.resetFields()
-            this.form.tags = []
+            this.form.fileList = []
             this.dialogVisible = false
           },
           cancel() {
@@ -377,33 +417,77 @@
           }
         }
       }
+      //图片样式
+      .uploader {
+        display: flex;
+        flex-direction: column;
+        align-items: normal;
+        margin-top: 20px;
+        /deep/.el-button--medium{
+          margin:0 auto;
+          padding:10px 40px;
+        }
+      }
 
-      </style>
-      <style>
-      .avatar-uploader .el-upload {
-        border: 1px dashed #d9d9d9;
-        border-radius: 6px;
-        cursor: pointer;
+      .grid-container {
+        align-items: normal;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      .grid-item {
         position: relative;
+        margin: 10px auto;
+        width: 150px;
+        height: 150px;
         overflow: hidden;
+        border-radius: 5px;
+        box-shadow: 0 0 5px #ccc;
       }
 
-      .avatar-uploader .el-upload:hover {
-        border-color: #409EFF;
+      .grid-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
 
-      .avatar-uploader-icon {
-        font-size: 28px;
-        color: #8c939d;
-        width: 178px;
-        height: 178px;
-        line-height: 178px;
-        text-align: center;
+      .delete-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
       }
 
-      .avatar {
-        width: 178px;
-        height: 178px;
-        display: block;
+      /deep/.el-badge__content.is-fixed{
+        top:10px;
       }
       </style>
+<!--      <style>-->
+<!--      .avatar-uploader .el-upload {-->
+<!--        border: 1px dashed #d9d9d9;-->
+<!--        border-radius: 6px;-->
+<!--        cursor: pointer;-->
+<!--        position: relative;-->
+<!--        overflow: hidden;-->
+<!--      }-->
+
+<!--      .avatar-uploader .el-upload:hover {-->
+<!--        border-color: #409EFF;-->
+<!--      }-->
+
+<!--      .avatar-uploader-icon {-->
+<!--        font-size: 28px;-->
+<!--        color: #8c939d;-->
+<!--        width: 178px;-->
+<!--        height: 178px;-->
+<!--        line-height: 178px;-->
+<!--        text-align: center;-->
+<!--      }-->
+
+<!--      .avatar {-->
+<!--        width: 178px;-->
+<!--        height: 178px;-->
+<!--        display: block;-->
+<!--      }-->
+<!--      </style>-->

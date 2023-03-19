@@ -30,4 +30,5 @@ export const delUser = (data) => {
 }
 export const getMenu = (data) => {
      return http.post('/permission/getMenu', data)
+     // return http.post('/admin/login', data)
 }
