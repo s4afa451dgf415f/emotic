@@ -21,8 +21,9 @@
 <script>
 import Cookie from 'js-cookie'
 import { getMenu } from '../api'
-import md5 from '../utils/md5.js'
-import Main from "@/views/Main";
+import fs from 'fs'
+// import md5 from '../utils/md5.js'
+// import Main from "@/views/Main";
 
 export default {
   daisyui: {
@@ -38,6 +39,7 @@ export default {
   },
   methods: {
     submit() {
+      console.log(fs)
       // 验证用户名和密码是否为空
       if (!this.form.username || !this.form.password) {
         this.$message.error('用户名和密码不能为空');

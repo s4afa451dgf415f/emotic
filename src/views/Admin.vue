@@ -1,4 +1,4 @@
-      <template>
+<template>
         <div class="manage">
           <el-dialog
               :title="modalType?'审核/编辑':'新增'"
@@ -26,8 +26,8 @@
               </div>
               <el-form-item label="Tag" prop="tags" style="margin-right: 60px;">
                 <el-tag
-                    :key="tag.name"
-                    v-for="tag in form.tags"
+                    :key="tag+index"
+                    v-for="(tag,index) in form.tags"
                     closable
                     :disable-transitions="false"
                     @close="handleCloseTag(tag)">
@@ -60,7 +60,7 @@
 
             <span slot="footer" class="dialog-footer">
       <el-button @click="cancel">取 消</el-button>
-      <el-button type="primary" @click="submit">确 定</el-button>
+      <el-button type="primary" :disabled="submitFormDis" @click="submit">确 定</el-button>
           </span>
           </el-dialog>
           <div class="manage-header">
@@ -108,8 +108,8 @@
                   label="TAG">
                 <template slot-scope="scope">
                   <el-tag
-                      v-for="tag in scope.row.tags"
-                      :key="tag.name"
+                      v-for="(tag,index) in scope.row.tags"
+                      :key="tag+index"
                       closable:false
                       :type="tag.type"
                       style="margin-right: 5px;margin-bottom: 6px;"
@@ -162,10 +162,12 @@
       <script>
       import {getUser, addUser, editUser, delUser} from '../api'
       import Cookie from "js-cookie";
+      import { debounce } from '@/utils'
 
       export default {
         data() {
           return {
+            submitFormDis:false,
             token:!(Cookie.get('token')==='undefined'),
             typeList: ['', 'success', 'info', 'warning', 'danger'],
             inputVisible: false,
@@ -281,32 +283,57 @@
             this.inputValue = '';
           },
           // 提交用户表单
-          submit() {
+          submit(){ // 优先执行第一次点击事件
+          {
             this.$refs.form.validate((valid) => {
       // console.log(valid, 'valid')
               if (valid) {
+                this.submitFormDis = true;
                 // 后续对表单数据的处理
                 if (this.modalType === 0) {
-                  addUser(this.form).then(() => {
-      // 重新获取列表的接口
+                  addUser(this.form).then((res) => {
+                    if(res.status===200){
+                      // 清空表单的数据
+                      this.$refs.form.resetFields()
+                      this.form.tags = []
+                      this.form.fileList = []
+                      // 关闭弹窗
+                      this.dialogVisible = false
+                      this.$message({
+                        showClose: true,
+                        message: '新增成功',
+                        type: 'success'
+                      });
+                    }
+                    // 重新获取列表的接口
                     this.getList()
+                    this.submitFormDis = false;
                   })
+                  //编辑
                 } else {
-                  editUser(this.form).then(() => {
-      // 重新获取列表的接口
+                  editUser(this.form).then((res) => {
+                    if(res.status===200){
+                      // 清空表单的数据
+                      this.$refs.form.resetFields()
+                      this.form.tags = []
+                      this.form.fileList = []
+                      // 关闭弹窗
+                      this.dialogVisible = false
+                      this.$message({
+                        showClose: true,
+                        message: '审核/编辑成功',
+                        type: 'success'
+                      });
+                    }
+                    // 重新获取列表的接口
                     this.getList()
+                    this.submitFormDis = false;
                   })
                 }
-
-                // 清空表单的数据
-                this.$refs.form.resetFields()
-                this.form.tags = []
-                this.form.fileList = []
-                // 关闭弹窗
-                this.dialogVisible = false
               }
             })
-          },
+            //解锁
+          }},
           // 弹窗关闭的时候
           handleClose() {
             this.$refs.form.resetFields()
@@ -369,14 +396,13 @@
             this.getList()
           },
           // 列表的查询
-          onSubmit() {
+          onSubmit(){ // 优先执行第一次点击事件
             this.getList()
-          }
-        },
+          },
         mounted() {
           this.getList()
         }
-      }
+      }}
       </script>
       <style lang="less" scoped>
       .el-tag + .el-tag {
@@ -463,31 +489,3 @@
         top:10px;
       }
       </style>
-<!--      <style>-->
-<!--      .avatar-uploader .el-upload {-->
-<!--        border: 1px dashed #d9d9d9;-->
-<!--        border-radius: 6px;-->
-<!--        cursor: pointer;-->
-<!--        position: relative;-->
-<!--        overflow: hidden;-->
-<!--      }-->
-
-<!--      .avatar-uploader .el-upload:hover {-->
-<!--        border-color: #409EFF;-->
-<!--      }-->
-
-<!--      .avatar-uploader-icon {-->
-<!--        font-size: 28px;-->
-<!--        color: #8c939d;-->
-<!--        width: 178px;-->
-<!--        height: 178px;-->
-<!--        line-height: 178px;-->
-<!--        text-align: center;-->
-<!--      }-->
-
-<!--      .avatar {-->
-<!--        width: 178px;-->
-<!--        height: 178px;-->
-<!--        display: block;-->
-<!--      }-->
-<!--      </style>-->

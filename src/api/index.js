@@ -1,7 +1,9 @@
 import http from'../utils/request'
 
 //请求首页数据
-export const getData=()=>{
+const    baseURL='http://localhost:3000'
+const    PbaseURL=''
+    export const getData=()=>{
     //返回一个promise对象
      return http.get('/home/getData')
 }
@@ -14,21 +16,21 @@ export const getData=()=>{
 export const getUser = (params) => {
      // 返回用户列表
      console.log(params, 'params')
-     return http.get('/user/getUser',params)
+     return http.get(baseURL+'/user/getUser',params)
 }
 
 export const addUser = (data) => {
-     return http.post('/user/add', data)
+     return http.post(baseURL+'/user/add', data)
 }
 
 export const editUser = (data) => {
-     return http.post('/user/edit', data)
+     return http.post(baseURL+'/user/edit', data)
 }
 
 export const delUser = (data) => {
-     return http.post('/user/del', data)
+     return http.post(baseURL+'/user/del', data)
 }
 export const getMenu = (data) => {
-     return http.post('/permission/getMenu', data)
+     return http.post(PbaseURL+'/permission/getMenu', data)
      // return http.post('/admin/login', data)
 }
