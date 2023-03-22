@@ -10,13 +10,13 @@ Vue.config.productionTip = false
 
 Vue.use(ElementUI);
 
+
 //添加全局前置导航守卫
 router.beforeEach((to,from,next)=>{
     //token存不存在
   const token=Cookie.get('token')
   //token不存在，说明用户和管理员均未登录,应该跳转至登录页
   if(!token&&to.name!=='login'){
-    console.log(123)
     next({name:'login'})
   }
   else if(token&&Cookie.get('token')!=='undefined'&&to.name==='login'){//如果token存在且不为普通用户，说明管理员登录，跳转至首页

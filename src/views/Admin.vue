@@ -70,10 +70,10 @@
             <!-- form搜索区域 -->
             <el-form :inline="true" :model="userForm">
               <el-form-item>
-                <el-input placeholder="请输入Tag" v-model="userForm.name"></el-input>
+                <el-input placeholder="请输入Tag或者上传者" v-model="userForm.name"></el-input>
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="onSubmit">查询</el-button>
+                <el-button type="primary" :disabled='submitFormDis' @click="onSubmit">查询</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -104,7 +104,7 @@
               </el-table-column>
               <el-table-column
                   prop="tags"
-                  width='420'
+                  width='600'
                   label="TAG">
                 <template slot-scope="scope">
                   <el-tag
@@ -128,10 +128,6 @@
                 </template>
               </el-table-column>
               <el-table-column
-                  prop="scale"
-                  label="大小(MB)">
-              </el-table-column>
-              <el-table-column
                   prop="upTime"
                   label="上传日期">
               </el-table-column>
@@ -153,6 +149,7 @@
               <el-pagination
                   layout="prev, pager, next"
                   :total="total"
+                  :page-size="7"
                   @current-change="handlePage">
               </el-pagination>
             </div>
@@ -178,7 +175,6 @@
               fileList: [], // 存储上传的图片列表
               // imageUrl: '',
               tags: [],
-              scale: '',
               audit: '',
               upTime: '',
               other: '',
@@ -387,6 +383,7 @@
               this.tableData = data.list
 
               this.total = data.count || 0
+              console.log(this.total)
             })
           },
           // 选择页码的回调函数
@@ -396,13 +393,21 @@
             this.getList()
           },
           // 列表的查询
-          onSubmit(){ // 优先执行第一次点击事件
-            this.getList()
+          onSubmit(){
+            this.debouncedGetList();
           },
+          debouncedGetList: debounce(function() {
+            this.getList();
+            this.$message({
+              message: '查询中，请稍候...',
+              type: 'info',
+              duration: 1000
+            });
+          }, 2000)
+      },
         mounted() {
           this.getList()
-        }
-      }}
+        }}
       </script>
       <style lang="less" scoped>
       .el-tag + .el-tag {
@@ -439,7 +444,7 @@
           .pager {
             position: absolute;
             bottom: 0;
-            right: 40%;
+            right: 45%;
           }
         }
       }

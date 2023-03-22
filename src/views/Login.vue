@@ -21,8 +21,7 @@
 <script>
 import Cookie from 'js-cookie'
 import { getMenu } from '../api'
-import fs from 'fs'
-// import md5 from '../utils/md5.js'
+import md5 from '../utils/md5.js'
 // import Main from "@/views/Main";
 
 export default {
@@ -39,14 +38,16 @@ export default {
   },
   methods: {
     submit() {
-      console.log(fs)
       // 验证用户名和密码是否为空
       if (!this.form.username || !this.form.password) {
         this.$message.error('用户名和密码不能为空');
         return;
       }
-      // this.form.password=md5(this.form.password)
-      getMenu(this.form).then(({data}) => {
+      this.form.password=md5(this.form.password)
+      console.log(md5(this.form.password))
+      getMenu(this.form).then((data) => {
+        // console.log(data)
+        this.form.password=''
         if (data.code === 20000) {
           // token信息存入cookie用于不同页面间的通信
           Cookie.set('token', data.data.token)
@@ -66,7 +67,7 @@ export default {
         username: 'putongyonghu',
         password: '123456'
       }
-      getMenu(putongForm).then(({data}) => {
+      getMenu(putongForm).then((data) => {
         if (data.code === 20000) {
           // token信息存入cookie用于不同页面间的通信
           Cookie.set('token', data.data.token)
