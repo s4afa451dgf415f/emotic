@@ -4,7 +4,6 @@ import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
 import router from './router'
 import store from './store'
-import './api/mock'
 import Cookie from 'js-cookie'
 Vue.config.productionTip = false
 

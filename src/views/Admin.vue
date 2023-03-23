@@ -234,7 +234,6 @@
               reader.readAsDataURL(file);
               reader.onload = () => {
                 const url = reader.result;
-
                 // 添加到图片列表中
                 this.form.fileList.push(url);
               };
@@ -288,7 +287,7 @@
                 // 后续对表单数据的处理
                 if (this.modalType === 0) {
                   addUser(this.form).then((res) => {
-                    if(res.status===200){
+                    if(res.code===200){
                       // 清空表单的数据
                       this.$refs.form.resetFields()
                       this.form.tags = []
@@ -307,8 +306,11 @@
                   })
                   //编辑
                 } else {
+                  console.log(123)
+
                   editUser(this.form).then((res) => {
-                    if(res.status===200){
+                    console.log('res.status'+res.status)
+                    if(res.code===200){
                       // 清空表单的数据
                       this.$refs.form.resetFields()
                       this.form.tags = []
@@ -383,7 +385,6 @@
               this.tableData = data.list
 
               this.total = data.count || 0
-              console.log(this.total)
             })
           },
           // 选择页码的回调函数

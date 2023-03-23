@@ -18,8 +18,11 @@ module.exports = defineConfig({
     allowedHosts: 'all',
     // proxy: {
     //   '/api': {
-    //     target: 'localhost:3000',
-    //     changeOrigin: true,
+    //     target: 'http://localhost:3000', // 目标服务器地址
+    //     changeOrigin: true, // 是否开启跨域
+    //     pathRewrite: {
+    //       '^/api': '' // 重写访问路径
+    //     }
     //   }
     // }
   }
