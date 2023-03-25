@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :data-theme="istoken?'':valentine">
     <el-button class="main-button" v-if=!istoken type='success' size="small" @click="handleClick()">管理员登录</el-button>
     <el-container>
       <el-aside   width="auto" v-if=istoken><common-aside></common-aside></el-aside>

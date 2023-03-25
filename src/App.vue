@@ -14,6 +14,9 @@ export default {
 </script>
 
 <style lang="less">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 //去除默认样式
   html,body,h3,p{
     margin:0;

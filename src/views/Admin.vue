@@ -1,7 +1,7 @@
-      <template>
+<template>
         <div class="manage">
           <el-dialog
-              :title="modalType?'审核/编辑':'新增'"
+              :title="modalType?'审核':'新增'"
               :visible.sync="dialogVisible"
               width="50%"
               :before-close="handleClose">
@@ -26,9 +26,10 @@
               </div>
               <el-form-item label="Tag" prop="tags" style="margin-right: 60px;">
                 <el-tag
-                    :key="tag.name"
-                    v-for="tag in form.tags"
+                    :key="tag+index"
+                    v-for="(tag,index) in form.tags"
                     closable
+                    :type="tag.type"
                     :disable-transitions="false"
                     @close="handleCloseTag(tag)">
                   {{ tag.name }}
@@ -47,12 +48,12 @@
                   New Tag
                 </el-button>
               </el-form-item>
-              <el-form-item label="是否审核" prop="audit" v-if=token style="margin-right: 60px;">
-                <el-select v-model="form.audit" placeholder="请选择" style="width: 120px;">
-                  <el-option label="是" :value="1"></el-option>
-                  <el-option label="否" :value="0"></el-option>
-                </el-select>
-              </el-form-item>
+<!--              <el-form-item label="是否审核" prop="audit" v-if=token style="margin-right: 60px;">-->
+<!--                <el-select v-model="form.audit" placeholder="请选择" style="width: 120px;">-->
+<!--                  <el-option label="是" :value="1"></el-option>-->
+<!--                  <el-option label="否" :value="0"></el-option>-->
+<!--                </el-select>-->
+<!--              </el-form-item>-->
               <el-form-item label-width="92px" label="上传者(可选)" prop="other" style="white-space: nowrap;">
                 <el-input    v-model="form.other"></el-input>
               </el-form-item>
@@ -60,7 +61,7 @@
 
             <span slot="footer" class="dialog-footer">
       <el-button @click="cancel">取 消</el-button>
-      <el-button type="primary" @click="submit">确 定</el-button>
+      <el-button type="primary" :disabled="submitFormDis" @click="submit">确 定</el-button>
           </span>
           </el-dialog>
           <div class="manage-header">
@@ -70,10 +71,10 @@
             <!-- form搜索区域 -->
             <el-form :inline="true" :model="userForm">
               <el-form-item>
-                <el-input placeholder="请输入Tag" v-model="userForm.name"></el-input>
+                <el-input placeholder="请输入Tag或者上传者" v-model="userForm.name"></el-input>
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="onSubmit">查询</el-button>
+                <el-button type="primary" :disabled='submitFormDis' @click="onSubmit">查询</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -104,12 +105,12 @@
               </el-table-column>
               <el-table-column
                   prop="tags"
-                  width='420'
+                  width='600'
                   label="TAG">
                 <template slot-scope="scope">
                   <el-tag
-                      v-for="tag in scope.row.tags"
-                      :key="tag.name"
+                      v-for="(tag,index) in scope.row.tags"
+                      :key="tag+index"
                       closable:false
                       :type="tag.type"
                       style="margin-right: 5px;margin-bottom: 6px;"
@@ -119,18 +120,15 @@
                 </template>
               </el-table-column>
 
-              <el-table-column
-                  prop="audit"
-                  label="是否审核"
-                  sortable="custom">
-                <template slot-scope="scope">
-                  <span :style="{color:scope.row.audit === 1 ?'green' : 'red'}">{{ scope.row.audit == 1 ? '是' : '否' }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column
-                  prop="scale"
-                  label="大小(MB)">
-              </el-table-column>
+<!--              <el-table-column-->
+<!--                  prop="audit"-->
+<!--                  label="是否审核"-->
+<!--                  v-if="token"-->
+<!--                  sortable="custom">-->
+<!--                <template slot-scope="scope">-->
+<!--                  <span :style="{color:scope.row.audit === 1 ?'green' : 'red'}">{{ scope.row.audit == 1 ? '是' : '否' }}</span>-->
+<!--                </template>-->
+<!--              </el-table-column>-->
               <el-table-column
                   prop="upTime"
                   label="上传日期">
@@ -153,6 +151,7 @@
               <el-pagination
                   layout="prev, pager, next"
                   :total="total"
+                  :page-size="7"
                   @current-change="handlePage">
               </el-pagination>
             </div>
@@ -162,10 +161,12 @@
       <script>
       import {getUser, addUser, editUser, delUser} from '../api'
       import Cookie from "js-cookie";
+      import { debounce } from '@/utils'
 
       export default {
         data() {
           return {
+            submitFormDis:false,
             token:!(Cookie.get('token')==='undefined'),
             typeList: ['', 'success', 'info', 'warning', 'danger'],
             inputVisible: false,
@@ -176,8 +177,7 @@
               fileList: [], // 存储上传的图片列表
               // imageUrl: '',
               tags: [],
-              scale: '',
-              audit: '',
+              // audit: '',
               upTime: '',
               other: '',
             },
@@ -186,9 +186,9 @@
               tags: [
                 {required: true, message: '请至少选择一个标签'}
               ],
-              audit: [
-                {required: true, message: '请选择是否审核'}
-              ],
+              // audit: [
+              //   {required: true, message: '请选择是否审核'}
+              // ],
             },
             tableData: [],
             modalType: 0, // 0表示新增的弹窗， 1表示编辑
@@ -236,7 +236,6 @@
               reader.readAsDataURL(file);
               reader.onload = () => {
                 const url = reader.result;
-
                 // 添加到图片列表中
                 this.form.fileList.push(url);
               };
@@ -281,32 +280,60 @@
             this.inputValue = '';
           },
           // 提交用户表单
-          submit() {
+          submit(){ // 优先执行第一次点击事件
+          {
             this.$refs.form.validate((valid) => {
       // console.log(valid, 'valid')
               if (valid) {
+                this.submitFormDis = true;
                 // 后续对表单数据的处理
                 if (this.modalType === 0) {
-                  addUser(this.form).then(() => {
-      // 重新获取列表的接口
+                  addUser(this.form).then((res) => {
+                    if(res.code===200){
+                      // 清空表单的数据
+                      this.$refs.form.resetFields()
+                      this.form.tags = []
+                      this.form.fileList = []
+                      // 关闭弹窗
+                      this.dialogVisible = false
+                      this.$message({
+                        showClose: true,
+                        message: '新增成功',
+                        type: 'success'
+                      });
+                    }
+                    // 重新获取列表的接口
                     this.getList()
+                    this.submitFormDis = false;
                   })
+                  //编辑
                 } else {
-                  editUser(this.form).then(() => {
-      // 重新获取列表的接口
+                  console.log(123)
+
+                  editUser(this.form).then((res) => {
+                    console.log('res.status'+res.status)
+                    if(res.code===200){
+                      // 清空表单的数据
+                      this.$refs.form.resetFields()
+                      this.form.tags = []
+                      this.form.fileList = []
+                      // 关闭弹窗
+                      this.dialogVisible = false
+                      this.$message({
+                        showClose: true,
+                        message: '审核/编辑成功',
+                        type: 'success'
+                      });
+                    }
+                    // 重新获取列表的接口
                     this.getList()
+                    this.submitFormDis = false;
                   })
                 }
-
-                // 清空表单的数据
-                this.$refs.form.resetFields()
-                this.form.tags = []
-                this.form.fileList = []
-                // 关闭弹窗
-                this.dialogVisible = false
               }
             })
-          },
+            //解锁
+          }},
           // 弹窗关闭的时候
           handleClose() {
             this.$refs.form.resetFields()
@@ -355,11 +382,11 @@
           // 获取列表的数据
           getList() {
       // 获取的列表的数据
-            getUser({params: {...this.userForm, ...this.pageData}}).then(({data}) => {
-              console.log(data)
-              this.tableData = data.list
+            getUser({params: {...this.userForm, ...this.pageData}}).then((res) => {
+              console.log(res)
+              this.tableData = res.list
 
-              this.total = data.count || 0
+              this.total = res.count
             })
           },
           // 选择页码的回调函数
@@ -369,14 +396,21 @@
             this.getList()
           },
           // 列表的查询
-          onSubmit() {
-            this.getList()
-          }
-        },
+          onSubmit(){
+            this.debouncedGetList();
+          },
+          debouncedGetList: debounce(function() {
+            this.getList();
+            this.$message({
+              message: '查询中，请稍候...',
+              type: 'info',
+              duration: 1000
+            });
+          }, 2000)
+      },
         mounted() {
           this.getList()
-        }
-      }
+        }}
       </script>
       <style lang="less" scoped>
       .el-tag + .el-tag {
@@ -413,7 +447,7 @@
           .pager {
             position: absolute;
             bottom: 0;
-            right: 40%;
+            right: 45%;
           }
         }
       }
@@ -463,31 +497,3 @@
         top:10px;
       }
       </style>
-<!--      <style>-->
-<!--      .avatar-uploader .el-upload {-->
-<!--        border: 1px dashed #d9d9d9;-->
-<!--        border-radius: 6px;-->
-<!--        cursor: pointer;-->
-<!--        position: relative;-->
-<!--        overflow: hidden;-->
-<!--      }-->
-
-<!--      .avatar-uploader .el-upload:hover {-->
-<!--        border-color: #409EFF;-->
-<!--      }-->
-
-<!--      .avatar-uploader-icon {-->
-<!--        font-size: 28px;-->
-<!--        color: #8c939d;-->
-<!--        width: 178px;-->
-<!--        height: 178px;-->
-<!--        line-height: 178px;-->
-<!--        text-align: center;-->
-<!--      }-->
-
-<!--      .avatar {-->
-<!--        width: 178px;-->
-<!--        height: 178px;-->
-<!--        display: block;-->
-<!--      }-->
-<!--      </style>-->
