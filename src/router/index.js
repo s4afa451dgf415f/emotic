@@ -3,6 +3,7 @@ import VueRouter from 'vue-router'
 
 import Main from '../views/Main'
 import Login from '../views/Login'
+import Upload from '../views/Upload'
 
 Vue.use(VueRouter)
 
@@ -24,6 +25,11 @@ const routes = [
         path:'/login',
         name:'login',
         component: Login,
+    },
+    {
+        path:'/upload',
+        name:'upload',
+        component: Upload,
     }
 ]
 

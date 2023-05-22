@@ -1,12 +1,11 @@
 <template>
   <div>
-    <el-button class="main-button" v-if=!istoken type='success' size="small" @click="handleClick()">管理员登录</el-button>
     <el-container>
-      <el-aside   width="auto" v-if=istoken><common-aside></common-aside></el-aside>
+      <el-aside   width="auto"><common-aside></common-aside></el-aside>
       <el-container>
-          <el-header v-if=istoken> <common-header></common-header></el-header>
-        <common-tag v-if=istoken></common-tag>
-        <el-main :style="{'padding-top':istoken ?'0vh' : '9.4vh'}">
+          <el-header> <common-header></common-header></el-header>
+        <common-tag></common-tag>
+        <el-main>
           <router-view></router-view>
         </el-main>
       </el-container>
@@ -22,7 +21,6 @@ import Cookie from "js-cookie";
 export default {
   data(){
     return {
-    istoken:!(Cookie.get('token')==='undefined'),
     }
   },
   methods:{
@@ -40,16 +38,7 @@ export default {
 </script>
 
 <style scoped>
-.main-button{
-  position:absolute;
-  top:20px;
-  right:20px;
-}
 .el-header{
-  padding:0;
-}
-.el-container{
-  height:100vh;
-
+  padding:0
 }
 </style>

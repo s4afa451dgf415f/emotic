@@ -1,13 +1,11 @@
 import axios from 'axios'
-import store from '../store';
 import Cookie from "js-cookie";
-
-
+import { Message } from 'element-ui';
 
 const http=axios.create({
     // baseURL:'https://localhost:3000',
     // baseURL:'https://Tu-Chuang.ccyellowstar.repl.co',
-    timeout:10000,
+    timeout:20000,
 })
 
 // 添加请求拦截器
@@ -25,7 +23,7 @@ http.interceptors.response.use(function (response) {
     response.headers['Access-Control-Allow-Credentials']=true
     // 对响应数据做点什么
         if (response.data.code === 500) {
-            this.$message({
+            Message({
                 showClose: true,
                 message: response.data.message,
                 duration: 2000,
@@ -43,10 +41,10 @@ http.interceptors.response.use(function (response) {
                 case 401:
                     err.message = '未授权，请重新登录';
                     break;
-                // case 403:
-                //     // 定位到登录页面
-                //     // err.message = '拒绝访问，请重新登录'
-                //     break;
+                case 403:
+                    // 定位到登录页面
+                    err.message = '拒绝访问，请重新登录'
+                    break;
                 case 404:
                     err.message = '请求错误,未找到该资源';
                     break;
@@ -80,7 +78,7 @@ http.interceptors.response.use(function (response) {
         } else {
             err.message = '连接到服务器失败!';
         }
-        this.$message({
+        Message({
             showClose: true,
             message: err.message,
             duration: 2000,

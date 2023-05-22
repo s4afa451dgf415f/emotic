@@ -31,8 +31,8 @@ export default {
   data() {
     return {
       form: {
-        username: 'NGzhinengyanjiusuo',
-        password: '123456'
+        username: '',
+        password: ''
       }
     }
   },
@@ -48,7 +48,7 @@ export default {
       getMenu(this.form).then((data) => {
         // console.log(data)
         this.form.password=''
-        if (data.code === 20000) {
+        if (data.code === 200) {
           // token信息存入cookie用于不同页面间的通信
           Cookie.set('token', data.data.token)
 
@@ -57,29 +57,16 @@ export default {
           this.$store.commit('addMenu', this.$router)
           // 跳转到首页
           this.$router.push('/admin')
+          this.form.password=''
         } else {
           this.$message.error(data.data.message);
+          this.form.password=''
         }
       })
     },
     submit1(){
-      let putongForm={
-        username: 'putongyonghu',
-        password: '123456'
-      }
-      getMenu(putongForm).then((data) => {
-        if (data.code === 20000) {
-          // token信息存入cookie用于不同页面间的通信
-          Cookie.set('token', data.data.token)
-          // 获取菜单的数据，存入store中
-          this.$store.commit('setMenu', data.data.menu)
-          this.$store.commit('addMenu', this.$router)
-          // 跳转到首页
-          this.$router.push('/upload')
-        } else {
-          this.$message.error(data.data.message);
-        }
-      })
+      // 跳转到上传页
+      this.$router.push('/upload')
     }
   }
 }

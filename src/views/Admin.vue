@@ -1,7 +1,7 @@
 <template>
         <div class="manage">
           <el-dialog
-              :title="modalType?'审核/编辑':'新增'"
+              title='编辑'
               :visible.sync="dialogVisible"
               width="50%"
               :before-close="handleClose">
@@ -30,8 +30,9 @@
                     v-for="(tag,index) in form.tags"
                     closable
                     :disable-transitions="false"
+                    :type=typeList[index]
                     @close="handleCloseTag(tag)">
-                  {{ tag.name }}
+                  {{ tag }}
                 </el-tag>
                 <el-input
                     class="input-new-tag"
@@ -43,7 +44,7 @@
                     @blur="handleInputConfirm"
                 >
                 </el-input>
-                <el-button v-else-if="tagsButton" v-show="tagsButton" class="button-new-tag" size="small" @click="showInput">+
+                <el-button v-else-if=" this.form.tags.length < 5" v-show=" this.form.tags.length < 5" class="button-new-tag" size="small" @click="showInput">+
                   New Tag
                 </el-button>
               </el-form-item>
@@ -64,16 +65,13 @@
           </span>
           </el-dialog>
           <div class="manage-header">
-            <el-button @click="handleAdd" type="primary">
-              + 新增
-            </el-button>
             <!-- form搜索区域 -->
             <el-form :inline="true" :model="userForm">
               <el-form-item>
                 <el-input placeholder="请输入Tag或者上传者" v-model="userForm.name"></el-input>
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" :disabled='submitFormDis' @click="onSubmit">查询</el-button>
+                <el-button type="primary" @click="onSubmit">查询/刷新</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -111,10 +109,10 @@
                       v-for="(tag,index) in scope.row.tags"
                       :key="tag+index"
                       closable:false
-                      :type="tag.type"
+                      :type="typeList[index]"
                       style="margin-right: 5px;margin-bottom: 6px;"
                   >
-                    {{ tag.name }}
+                    {{ tag }}
                   </el-tag>
                 </template>
               </el-table-column>
@@ -129,7 +127,11 @@
               </el-table-column>
               <el-table-column
                   prop="upTime"
+                  slot=""
                   label="上传日期">
+                <template slot-scope="scope">
+                  <span>{{ scope.row.upTime.split('T')[0]}}</span>
+                </template>
               </el-table-column>
               <el-table-column
                   prop="other"
@@ -140,7 +142,8 @@
                   label="操作"
                   v-if="token">
                 <template slot-scope="scope">
-                  <el-button size="mini" @click="handleEdit(scope.row)">审核/编辑</el-button>
+                  <el-button size="mini" @click="handleEdit(scope.row)" type="success">编辑</el-button>
+                  <el-button size="mini" type="warning" @click="handleReview(scope.row)">审核</el-button>
                   <el-button type="danger" size="mini" @click="handleDelete(scope.row)">删除</el-button>
                 </template>
               </el-table-column>
@@ -157,7 +160,7 @@
         </div>
       </template>
       <script>
-      import {getUser, addUser, editUser, delUser} from '../api'
+      import {getUser, editUser, delUser} from '../api'
       import Cookie from "js-cookie";
       import { debounce } from '@/utils'
 
@@ -169,7 +172,6 @@
             typeList: ['', 'success', 'info', 'warning', 'danger'],
             inputVisible: false,
             inputValue: '',
-            tagsButton: true,
             dialogVisible: false,
             form: {
               fileList: [], // 存储上传的图片列表
@@ -189,7 +191,6 @@
               ],
             },
             tableData: [],
-            modalType: 0, // 0表示新增的弹窗， 1表示编辑
             total: 0, //当前的总条数
             pageData: {
               page: 1,
@@ -219,13 +220,13 @@
             for (let i = 0; i < files.length; i++) {
               const file = files[i];
               // let temp=['image/jpeg','image/png','image/gif','image/bmp','image/svg']
-              const isLt2M = file.size / 1024 / 1024 < 10;
+              const isLt2M = file.size / 1024 / 1024 < 2;
               // if (!temp.includes(file.type)) {
               //   this.$message.error('图片格式只能为JPEG、PNG、GIF、BMP、SVG！');
               //   return ;
               // }
               if (!isLt2M) {
-                this.$message.error('上传表情图片大小不能超过 10MB!');
+                this.$message.error('上传表情图片大小不能超过 2MB!');
                 return ;
               }
               const reader = new FileReader();
@@ -259,7 +260,6 @@
           //标签管理
           handleCloseTag(tag) {
             this.form.tags.splice(this.form.tags.indexOf(tag), 1);
-            this.tagsButton = this.form.tags.length < 5
           },
 
           showInput() {
@@ -271,9 +271,8 @@
           handleInputConfirm() {
             let inputValue = this.inputValue;
             if (inputValue) {
-              this.form.tags.push({name: inputValue, type: this.typeList[this.form.tags.length]});
+              this.form.tags.push(inputValue);
             }
-            this.tagsButton = this.form.tags.length < 5
             this.inputVisible = false;
             this.inputValue = '';
           },
@@ -285,29 +284,6 @@
               if (valid) {
                 this.submitFormDis = true;
                 // 后续对表单数据的处理
-                if (this.modalType === 0) {
-                  addUser(this.form).then((res) => {
-                    if(res.code===200){
-                      // 清空表单的数据
-                      this.$refs.form.resetFields()
-                      this.form.tags = []
-                      this.form.fileList = []
-                      // 关闭弹窗
-                      this.dialogVisible = false
-                      this.$message({
-                        showClose: true,
-                        message: '新增成功',
-                        type: 'success'
-                      });
-                    }
-                    // 重新获取列表的接口
-                    this.getList()
-                    this.submitFormDis = false;
-                  })
-                  //编辑
-                } else {
-                  console.log(123)
-
                   editUser(this.form).then((res) => {
                     console.log('res.status'+res.status)
                     if(res.code===200){
@@ -319,7 +295,7 @@
                       this.dialogVisible = false
                       this.$message({
                         showClose: true,
-                        message: '审核/编辑成功',
+                        message: '编辑成功',
                         type: 'success'
                       });
                     }
@@ -327,7 +303,7 @@
                     this.getList()
                     this.submitFormDis = false;
                   })
-                }
+
               }
             })
             //解锁
@@ -342,13 +318,42 @@
             this.handleClose()
           },
           handleEdit(row) {
-            this.modalType = 1
             this.dialogVisible = true
       // 注意需要对当前行数据进行深拷贝，否则会出错
       //       this.form = JSON.parse(JSON.stringify(row))
       this.$nextTick(()=>{
         this.form = JSON.parse(JSON.stringify(row))
       })
+          },
+          handleReview(row){
+            this.$confirm('确定已审核?', '提示', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }).then(() => {
+              let tempForm = JSON.parse(JSON.stringify(row))
+              tempForm.audit=1
+              return editUser(tempForm)
+            }).then((res)=>{
+              if(res.code===200){
+                this.$message({
+                  type: 'success',
+                  message: '审核成功!'
+                });
+                this.getList()
+              }
+              else{
+                this.$message({
+                  type: 'error',
+                  message: '审核失败'
+                })
+              }
+            }).catch(err=>{
+              this.$message({
+                type: 'error',
+                message: '审核失败'
+              })
+            })
           },
           handleDelete(row) {
             this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
@@ -371,11 +376,6 @@
                 message: '已取消删除'
               });
             });
-          },
-          handleAdd() {
-            this.modalType = 0
-            this.dialogVisible = true
-            this.tagsButton = true
           },
           // 获取列表的数据
           getList() {

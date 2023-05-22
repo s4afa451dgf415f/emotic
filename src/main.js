@@ -5,6 +5,7 @@ import 'element-ui/lib/theme-chalk/index.css';
 import router from './router'
 import store from './store'
 import Cookie from 'js-cookie'
+import './daisyComponents';
 Vue.config.productionTip = false
 
 Vue.use(ElementUI);
@@ -12,17 +13,21 @@ Vue.use(ElementUI);
 
 //添加全局前置导航守卫
 router.beforeEach((to,from,next)=>{
-    //token存不存在
+  //token存不存在
   const token=Cookie.get('token')
   //token不存在，说明用户和管理员均未登录,应该跳转至登录页
-  if(!token&&to.name!=='login'){
-    next({name:'login'})
+  // if(to.name!=='/'&&token){//如果token存在且不为普通用户，说明管理员登录，跳转至首页
+  //   next({name:'/'})
+  // }
+  if(token){
+    if(to.name==='login'||to.name==='upload'){
+      next('/')
+    }
+    else{
+      next()
+    }
   }
-  else if(token&&Cookie.get('token')!=='undefined'&&to.name==='login'){//如果token存在且不为普通用户，说明管理员登录，跳转至首页
-    next({name:'/'})
-  }
-  //如果token存在且为普通用户跳转至upload
-  else if(token&&Cookie.get('token')==='undefined'&&to.name!=='upload'){
+  else if(to.name!=='login'&&to.name!=='upload'){
     next({name:'upload'})
   }
   else{
