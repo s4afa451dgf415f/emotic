@@ -39,7 +39,7 @@ export default {
   },
   mounted() {
     if (this.timer) {
-      clearTimeout(this.timer) //为什么要清除定时器??
+      clearTimeout(this.timer)
     }
     this.timer=setTimeout(()=>{
 
@@ -48,7 +48,7 @@ export default {
   },
   beforeUpdate(){
     if (this.timer) {
-      clearTimeout(this.timer) //为什么要清除定时器??
+      clearTimeout(this.timer)
     }
     this.timer=setTimeout(()=>{
       this.close()
@@ -72,13 +72,13 @@ export default {
   border-radius: 4px;
   border-width: 1px;
   border-style: solid;
-  border-color: #EBEEF5;
+  //border-color: #e5e7eb;
   position: fixed;
   top: 20px;
   left: 33%;
   margin:0 auto;
   //transform:translateX(-50%);
-  background-color: #edf2fc;
+  //background-color: #e5e7eb;
   overflow: hidden;
   padding: 20px 0;
   display: flex;

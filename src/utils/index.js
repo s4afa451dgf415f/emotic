@@ -1,6 +1,8 @@
 // 防抖
 // func: debounce(function() {
 // }, 1000, false),
+import Compressor from "compressorjs";
+
 export function debounce(func, wait = 500, immediate = true) {
     let timeout, args, context, timestamp, result
 
@@ -92,91 +94,47 @@ export function guid(len = 8, firstU = true, radix = null) {
 
 }
 
-
-// 获取多级数组选中数据
-export function getDetArraysValue(key, treeData, id = 'areaId', children = 'children') {
-    if (!key) return [];
-    let arr = []; // 在递归时操作的数组
-    let returnArr = []; // 存放结果的数组
-    let depth = 0; // 定义全局层级
-    // 定义递归函数
-    function childrenEach(childrenData, depthN) {
-        for (var j = 0; j < childrenData.length; j++) {
-            depth = depthN; // 将执行的层级赋值 到 全局层级
-            arr[depthN] = childrenData[j][id];
-            if (childrenData[j][id] === key) {
-                returnArr = arr.slice(0, depthN + 1); // 将目前匹配的数组，截断并保存到结果数组，
-                break
-            } else {
-                if (childrenData[j][children]) {
-                    depth++;
-                    childrenEach(childrenData[j][children], depth);
+//上传加解压到指定大小，参数分别为图片文件对象，接近的大小，回调，从什么质量开始解压（选填）
+export function uploadAndCompress(file, size, fn, quality = 1) {
+    new Compressor(file, {
+        quality,
+        maxWidth: 800,
+        maxHeight: 800,
+        convertSize: size * 1024,
+        success: (result) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(result); // blob转base64
+            // 读取完毕
+            reader.onload = () => {
+                console.log(reader.result.length, 1024 * size);
+                if (reader.result.length > 1024 * size && quality > 0) {
+                    quality -= 0.05;
+                    uploadAndCompress(file, size, fn, quality);
+                } else {
+                    fn(reader.result);
                 }
-            }
-        }
-        return returnArr;
-    }
-    return childrenEach(treeData, depth);
+            };
+        },
+        error: () => {
+            this.$message({
+                showClose: true,
+                message: '压缩失败',
+                type: 'error',
+            });
+        },
+    });
 }
 
-// 获取多级数组选中详细数据
-// data 为源数组
-// value 为选中数组
-// keyName 为返回键名 不传默认返回一个完整对象，传值，则返回当前选择对象键名的值，建议传值；
-export function getArrayValue(data, value, keyName = 'code', id = 'areaId') {
-    if (!value && value.length === 0 && !data && data.length === 0) return '';
-    for (let i = 0; i < data.length; i++) {
-        if (data[i][id] === value[0]) {
-            if (data[i].children && value.length > 1) {
-                value.splice(0, 1);
-                return getArrayValue(data[i].children, value, keyName);
-            } return keyName ? data[i][keyName] : data[i];
-        }
-    }
-}
+//时间转换
+export function formatDate(str) {
+    const date = new Date(str);
+    const year = date.getFullYear();
+    const month = ('0' + (date.getMonth() + 1)).slice(-2);
+    const day = ('0' + date.getDate()).slice(-2);
+    const hour = ('0' + date.getHours()).slice(-2);
+    const minute = ('0' + date.getMinutes()).slice(-2);
+    const second = ('0' + date.getSeconds()).slice(-2);
 
-// 获取区域的id
-export function changeDetSelect(key, treeData, id = 'areaId', children = 'children') {
-    if (!key) return [];
-    let arr = []; // 在递归时操作的数组
-    let returnArr = []; // 存放结果的数组
-    let depth = 0; // 定义全局层级
-    // 定义递归函数
-    function childrenEach(childrenData, depthN) {
-        for (var j = 0; j < childrenData.length; j++) {
-            depth = depthN; // 将执行的层级赋值 到 全局层级
-            arr[depthN] = childrenData[j][id];
-            if (childrenData[j][id] === key) {
-                returnArr = arr.slice(0, depthN + 1); // 将目前匹配的数组，截断并保存到结果数组，
-                break
-            } else {
-                if (childrenData[j][children]) {
-                    depth++;
-                    childrenEach(childrenData[j][children], depth);
-                }
-            }
-        }
-        return returnArr;
-    }
-    return childrenEach(treeData, depth);
-}
-
-// 删除多余的children
-export function changeMenusData( menusData, children = 'children') {
-    // menusData = menusData.slice(0,1)
-    let data = menusData
-    // 定义递归函数
-    function childrenEach(childrenData) {
-        for (var j = 0; j <= childrenData.length; j++) {
-            if (childrenData[j][children].length === 0) {
-                delete childrenData[j][children]
-            } else if (childrenData[j][children].length > 0) {
-                childrenEach(childrenData[j][children]);
-            }
-        }
-        console.log(data);
-        return data
-    }
-    return childrenEach(data);
+    return `${year}年${month}月${day}日${hour}:${minute}:${second}`;
 }
 

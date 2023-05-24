@@ -1,8 +1,8 @@
 import http from'../utils/request'
 
 //请求首页数据
-// const    baseURL='http://localhost:3000'
-const    baseURL='http://111.230.15.231:3000' //等待买域名
+const    baseURL='http://localhost:3000'
+// const    baseURL='http://111.230.15.231:3000' //等待买域名
 
 //获取菜单
 export const getMenu = (data) => {
@@ -13,7 +13,6 @@ export const getMenu = (data) => {
 //表情管理(未审核)
 export const getUser = (params) => {
      // 返回用户列表
-     console.log(params, 'params')
      return http.get(baseURL+'/index/read',params)
 }
 
@@ -22,6 +21,7 @@ export const addUser = (data) => {
 }
 
 export const editUser = (data) => {
+     console.log('edit')
      return http.post(baseURL+'/index/edit', data)
 }
 

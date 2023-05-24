@@ -55,7 +55,7 @@
 
       <span slot="footer" class="dialog-footer">
       <el-button @click="cancel">取 消</el-button>
-      <el-button type="primary" :disabled="submitFormDis" @click="submit">确 定</el-button>
+      <el-button ref="button" type="primary" :disabled="submitFormDis" @click="submit">确 定</el-button>
           </span>
     </el-dialog>
     <div class="manage-header">
@@ -73,6 +73,7 @@
       <el-table
           stripe
           height="90%"
+          empty-text="暂无数据"
           @sort-change="sortTable"
           :data="tableData"
           style="width: 100%">
@@ -124,7 +125,7 @@
             slot=""
             label="上传日期">
           <template slot-scope="scope">
-            <span>{{ scope.row.upTime.split('T')[0]}}</span>
+            <span >{{ formatDate(scope.row.upTime)}}</span>
           </template>
         </el-table-column>
         <el-table-column
@@ -145,7 +146,7 @@
         <el-pagination
             layout="prev, pager, next"
             :total="total"
-            :page-size="7"
+            :page-size="pageData.limit"
             @current-change="handlePage">
         </el-pagination>
       </div>
@@ -155,7 +156,7 @@
 <script>
 import {getEmotic, editEmotic, delEmotic} from '../api'
 import Cookie from "js-cookie";
-import { debounce } from '@/utils'
+import { uploadAndCompress,formatDate,debounce } from '@/utils'
 
 export default {
   data() {
@@ -184,7 +185,7 @@ export default {
       total: 0, //当前的总条数
       pageData: {
         page: 1,
-        limit: 7
+        limit: 2
       },
       userForm: {
         name: '',
@@ -194,41 +195,50 @@ export default {
     }
   },
   methods: {
+    formatDate: formatDate,
     onUpload() {
       this.$refs.uploadInput.click();
     },
 
-    // 选择文件后上传
+    // 选择文件后上传 bug待修复
     uploadFiles(files) {
-      console.log(this.form.fileList,files)
+      this.$refs.button.disabled = true;
       // 最多上传9张图片
-      if (this.form.fileList.length + files.length > 9) {
-        this.$message.error("最多只能上传9张图片");
-        return;
-      }
-      // 遍历选择的文件并上传
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        // let temp=['image/jpeg','image/png','image/gif','image/bmp','image/svg']
-        const isLt2M = file.size / 1024 / 1024 < 2;
-        // if (!temp.includes(file.type)) {
-        //   this.$message.error('图片格式只能为JPEG、PNG、GIF、BMP、SVG！');
-        //   return ;
-        // }
-        if (!isLt2M) {
-          this.$message.error('上传表情图片大小不能超过 2MB!');
-          return ;
+      new Promise(()=>{
+        if (this.form.fileList.length + files.length > 9) {
+          this.$message.error("最多只能上传9张图片");
+          return;
         }
-        const reader = new FileReader();
-
-        // 读取文件内容并转成Base64编码
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          const url = reader.result;
-          // 添加到图片列表中
-          this.form.fileList.push(url);
-        };
-      }
+        // 遍历选择的文件并上传
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          // let temp=['image/jpeg','image/png','image/gif','image/bmp','image/svg,webp']
+          const isLt2M = file.size< 200*1024;
+          // if (!temp.includes(file.type)) {
+          //   this.$message.error('图片格式只能为JPEG、PNG、GIF、BMP、SVG、webp！');
+          //   return ;
+          // }
+          if (!isLt2M) {
+            this.$message.warning(`上传的${i+1}张将进行压缩至500kb以内`);
+            uploadAndCompress(file,200,(comResult)=>{this.form.fileList.push(comResult)},0.9)
+          }
+          else{
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+              const url = reader.result;
+              this.form.fileList.push(url);
+            };
+          }
+        }
+      })
+          .then(()=>{
+            this.$nextTick(()=>{
+              this.$refs.button.disabled = false;
+              // this.submitFormDis=false
+              console.log(this.$refs.button.disabled)
+            })
+          })
     },
 
     // 删除图片

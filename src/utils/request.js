@@ -1,16 +1,26 @@
 import axios from 'axios'
 import Cookie from "js-cookie";
 import { Message } from 'element-ui';
+import app from '../main'
+import { showLoading, hideLoading } from './loading';
+
 
 const http=axios.create({
     // baseURL:'https://localhost:3000',
     // baseURL:'https://Tu-Chuang.ccyellowstar.repl.co',
-    timeout:20000,
+    timeout:30000,
 })
 
 // 添加请求拦截器
 http.interceptors.request.use(function (config) {
+        let source= axios.CancelToken.source();
+        config.cancelToken = source.token
+        // 此处使用 store 存储取消接口的方法，便于在其他地方调用
+        let arr = app.$store.state.tab.getCancelTokenList
+        arr.push(source.cancel)
+        app.$store.commit('setCancelTokenList', arr)
     // 在发送请求之前做些什么
+        showLoading()
         config.headers['token'] = Cookie.get('token')
         return config;
     },
@@ -30,9 +40,11 @@ http.interceptors.response.use(function (response) {
                 type: 'error'
             });
         }
+        hideLoading()
         return response.data;
     },
     err => {
+        hideLoading()
         if (err && err.response) {
             switch (err.response.status) {
                 case 400:
@@ -53,6 +65,9 @@ http.interceptors.response.use(function (response) {
                     break;
                 case 408:
                     err.message = '请求超时';
+                    break;
+                case 413:
+                    err.message = '请求体积过大';
                     break;
                 case 500:
                     err.message = '服务器端出错';

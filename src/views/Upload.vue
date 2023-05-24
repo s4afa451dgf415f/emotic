@@ -13,7 +13,7 @@
           <button class="btn" @click="onUpload">上传表情（可多选,最多9张）</button>
           <div class="grid-container">
             <div v-for="(item, index) in form.fileList" :key="index" class="grid-item">
-              <img class='object-contain shadow-inner border-4 border-cyan-400' :src="item" alt="图片" />
+              <img :class="`object-contain shadow-inner border-4 ${waningBorder[index]?'border-orange-400':'border-cyan-400'}`" :src="item" alt="图片" />
               <button class="btn btn-warning delete-btn" @click="deleteItem(index)">删除</button>
             </div>
           </div>
@@ -53,11 +53,14 @@
   <!--    </div>-->
 </template>
 <script>
+
 import { addUser } from '@/api'
+import { uploadAndCompress } from '@/utils'
 
 export default {
   data() {
     return {
+      waningBorder:[],
       showAlert: false,
       showMessage: false,
       addButon:true,
@@ -92,47 +95,40 @@ export default {
         fn(true);
       }
     },
-    // validate(fn) {
-    //   if (!this.form.fileList.length) {
-    //     this.$message({
-    //       showClose: true,
-    //       message: "请上传至少一张图片",
-    //       type: "error",
-    //     });
-    //   } else if (!this.form.tags.length) {
-    //     this.$message({
-    //       showClose: true,
-    //       message: "请输入至少一个tag",
-    //       type: "error",
-    //     });
-    //   } else {
-    //     fn(true);
-    //   }
-    // },
     uploadFiles(files) {
       if (this.form.fileList.length + files.length > 9) {
         this.$message.error("最多只能上传9张图片");
         return;
       }
+      let temp=['image/jpeg','image/png','image/gif','image/bmp','image/svg',"image/webp"]
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const isLt2M = file.size / 1024 / 1024 < 2;
-        if (!isLt2M) {
-          this.$message.warning(`每张表情不能超过500MB，第${i+1}张将进行压缩`);
-          return ;
+        console.log(files[i].type)
+        if (!temp.includes(files[i].type)) {
+          this.$message.error(`图片格式只能为JPEG、PNG、GIF、BMP、SVG、WEBP！,第${i+1}张不符合要求`);
         }
-        const reader = new FileReader();
+        const file = files[i];
+        const isLt2M = file.size < 200*1024;
+        if (!isLt2M) {
+          this.$message.warning(`第${i+1}张将进行压缩接近100kb`);
 
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          const url = reader.result;
-          this.form.fileList.push(url);
-        };
-      }
+          uploadAndCompress(file,200,(comResult)=>{this.waningBorder.push(true);this.form.fileList.push(comResult)},0.9)
+        }
+        else{
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => {
+            const url = reader.result;
+            this.form.fileList.push(url);
+          };
+          this.waningBorder.push(false)
+        }
+        }
     },
 
     deleteItem(index) {
       this.form.fileList.splice(index, 1);
+      this.waningBorder.splice(index, 1);
+      console.log(this.waningBorder)
     },
     handleCloseTag(tag) {
       this.form.tags.splice(this.form.tags.indexOf(tag), 1);
@@ -307,18 +303,7 @@ input{
   position: absolute;
   top: 30%;
   left: 45%;
-  //font-size: 1.5rem;
-  //padding: 15px 30px;
-  //background-color: rgb(233,109,123);
-  //color: #fff;
-
-  //border-radius: 20px;
-  //font-weight: 500;
   animation: pulse 1.5s infinite ease-in-out;
-  //&:hover {
-  //  background-color: darken(#4c51bf, 5%);
-  //  animation: none;
-  //}
 }
 .uploader {
   display: flex;

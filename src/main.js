@@ -15,10 +15,13 @@ Vue.use(ElementUI);
 router.beforeEach((to,from,next)=>{
   //token存不存在
   const token=Cookie.get('token')
-  //token不存在，说明用户和管理员均未登录,应该跳转至登录页
-  // if(to.name!=='/'&&token){//如果token存在且不为普通用户，说明管理员登录，跳转至首页
-  //   next({name:'/'})
-  // }
+  if(store.state.tab.getCancelTokenList.length){
+    for(let i=0;i<store.state.tab.getCancelTokenList.length;i++){
+      store.state.tab.getCancelTokenList[i]('取消请求')
+    }
+    // store.state.tab.getCancelTokenList[0]('取消请求')
+    store.commit('setCancelTokenList', [])
+  }
   if(token){
     if(to.name==='login'||to.name==='upload'){
       next('/')
@@ -36,7 +39,7 @@ router.beforeEach((to,from,next)=>{
 
 
 })
-new Vue({
+let app=new Vue({
   router,
   store,
   render: h => h(App),
@@ -45,3 +48,5 @@ new Vue({
     store.commit('addMenu',router)
   }
 }).$mount('#app')
+
+export default app

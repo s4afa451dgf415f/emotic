@@ -22,7 +22,7 @@
                 </div>
 
                 <!-- 图片上传组件 -->
-                <input type="file" ref="uploadInput" style="display:none;" multiple @change="uploadFiles($event.target.files)">
+                <input  type="file" ref="uploadInput" style="display:none;" multiple @change="uploadFiles($event.target.files)">
               </div>
               <el-form-item label="Tag" prop="tags" style="margin-right: 60px;">
                 <el-tag
@@ -61,7 +61,7 @@
 
             <span slot="footer" class="dialog-footer">
       <el-button @click="cancel">取 消</el-button>
-      <el-button type="primary" :disabled="submitFormDis" @click="submit">确 定</el-button>
+      <el-button ref="button" type="primary" :disabled="submitFormDis" @click="submit">确 定</el-button>
           </span>
           </el-dialog>
           <div class="manage-header">
@@ -77,7 +77,9 @@
           </div>
           <div class="common-tabel">
             <el-table
+                row-key="_id"
                 stripe
+                empty-text="暂无数据"
                 height="90%"
                 @sort-change="sortTable"
                 :data="tableData"
@@ -86,7 +88,8 @@
                   prop="fileList"
                   label="表情">
                 <template slot-scope="scope">
-                  <el-badge :value="scope.row.fileList.length" class="item" type="primary" >
+                  <el-badge
+                                               :value="scope.row.fileList.length" class="item" type="primary" >
                     <el-image
                         style="width: 80px; height: 80px; background-color:rgb(245,247,250); "
                         ref="myImg"
@@ -122,7 +125,7 @@
                   label="是否审核"
                   sortable="custom">
                 <template slot-scope="scope">
-                  <span :style="{color:scope.row.audit === 1 ?'green' : 'red'}">{{ scope.row.audit == 1 ? '是' : '否' }}</span>
+                  <span  :style="{color:scope.row.audit === 1 ?'green' : 'red'}">{{ scope.row.audit == 1 ? '是' : '否' }}</span>
                 </template>
               </el-table-column>
               <el-table-column
@@ -130,7 +133,7 @@
                   slot=""
                   label="上传日期">
                 <template slot-scope="scope">
-                  <span>{{ scope.row.upTime.split('T')[0]}}</span>
+                  <span >{{ formatDate(scope.row.upTime)}}</span>
                 </template>
               </el-table-column>
               <el-table-column
@@ -152,7 +155,7 @@
               <el-pagination
                   layout="prev, pager, next"
                   :total="total"
-                  :page-size="7"
+                  :page-size="pageData.limit"
                   @current-change="handlePage">
               </el-pagination>
             </div>
@@ -162,8 +165,7 @@
       <script>
       import {getUser, editUser, delUser} from '../api'
       import Cookie from "js-cookie";
-      import { debounce } from '@/utils'
-
+      import { uploadAndCompress,formatDate,debounce } from '@/utils'
       export default {
         data() {
           return {
@@ -190,11 +192,19 @@
                 {required: true, message: '请选择是否审核'}
               ],
             },
-            tableData: [],
+            tableData: [
+              // {},
+              // {},
+              // {},
+              // {},
+              // {},
+              // {},
+              // {},
+            ],
             total: 0, //当前的总条数
             pageData: {
               page: 1,
-              limit: 7
+              limit: 2
             },
             userForm: {
               name: '',
@@ -204,41 +214,53 @@
           }
         },
         methods: {
+          formatDate: formatDate,
           onUpload() {
-            this.$refs.uploadInput.click();
+            this.$refs.uploadInput.click()
           },
 
-          // 选择文件后上传
+          // 选择文件后上传 bug待修复
           uploadFiles(files) {
-            console.log(this.form.fileList,files)
-            // 最多上传9张图片
-            if (this.form.fileList.length + files.length > 9) {
-              this.$message.error("最多只能上传9张图片");
-              return;
-            }
-            // 遍历选择的文件并上传
-            for (let i = 0; i < files.length; i++) {
-              const file = files[i];
-              // let temp=['image/jpeg','image/png','image/gif','image/bmp','image/svg']
-              const isLt2M = file.size / 1024 / 1024 < 2;
-              // if (!temp.includes(file.type)) {
-              //   this.$message.error('图片格式只能为JPEG、PNG、GIF、BMP、SVG！');
-              //   return ;
-              // }
-              if (!isLt2M) {
-                this.$message.error('上传表情图片大小不能超过 2MB!');
-                return ;
+            console.log(this.$refs.button)
+            this.$refs.button.disabled = true;
+              console.log(this.$refs.button.disabled)
+              // 最多上传9张图片
+            new Promise(()=>{
+              if (this.form.fileList.length + files.length > 9) {
+                this.$message.error("最多只能上传9张图片");
+                return;
               }
-              const reader = new FileReader();
-
-              // 读取文件内容并转成Base64编码
-              reader.readAsDataURL(file);
-              reader.onload = () => {
-                const url = reader.result;
-                // 添加到图片列表中
-                this.form.fileList.push(url);
-              };
-            }
+              // 遍历选择的文件并上传
+              for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                // let temp=['image/jpeg','image/png','image/gif','image/bmp','image/svg']
+                const isLt2M = file.size  < 200*1024;
+                // if (!temp.includes(file.type)) {
+                //   this.$message.error('图片格式只能为JPEG、PNG、GIF、BMP、SVG！');
+                //   return ;
+                // }
+                console.log('isLt2M'+isLt2M)
+                if (!isLt2M) {
+                  this.$message.warning(`上传的${i+1}张将进行压缩至100kb以内`);
+                  uploadAndCompress(file,200,(comResult)=>{this.form.fileList.push(comResult)},0.9)
+                }
+                else{
+                  const reader = new FileReader();
+                  reader.readAsDataURL(file);
+                  reader.onload = () => {
+                    const url = reader.result;
+                    this.form.fileList.push(url);
+                  };
+                }
+              }
+            })
+             .then(()=>{
+               this.$nextTick(()=>{
+                 this.$refs.button.disabled = false;
+                 // this.submitFormDis=false
+                 console.log(this.$refs.button.disabled)
+               })
+             })
           },
 
           // 删除图片
@@ -247,7 +269,6 @@
           },
           //排序
           sortTable(name){       //排序
-            console.log(this.token)
             if(name.order!=null){
               this.userForm.sortorder=name['order']=='descending'?'desc':'asc';
               this.userForm.sortname=name['prop'];
@@ -280,12 +301,10 @@
           submit(){ // 优先执行第一次点击事件
           {
             this.$refs.form.validate((valid) => {
-      // console.log(valid, 'valid')
               if (valid) {
                 this.submitFormDis = true;
                 // 后续对表单数据的处理
                   editUser(this.form).then((res) => {
-                    console.log('res.status'+res.status)
                     if(res.code===200){
                       // 清空表单的数据
                       this.$refs.form.resetFields()
@@ -340,6 +359,7 @@
                   type: 'success',
                   message: '审核成功!'
                 });
+                console.log(1)
                 this.getList()
               }
               else{
@@ -381,15 +401,21 @@
           getList() {
       // 获取的列表的数据
             getUser({params: {...this.userForm, ...this.pageData}}).then(({data}) => {
-              console.log(data)
-              this.tableData = data.list
-
+              // for(let i=0;i<this.pageData.limit;i++){
+              //   if(data.list[i])
+              //   for(let attr in data.list[i]){
+              //     this.$set(this.tableData[i], attr, data.list[i][attr])
+              //   }
+              //   else this.tableData[i]={}
+              // }
+              // console.log(this.tableData)
+              console.log(data.list)
+              this.tableData=data.list
               this.total = data.count || 0
             })
           },
           // 选择页码的回调函数
           handlePage(val) {
-      // console.log(val, 'val')
             this.pageData.page = val
             this.getList()
           },
@@ -408,7 +434,9 @@
       },
         mounted() {
           this.getList()
-        }}
+        }
+      }
+
       </script>
       <style lang="less" scoped>
       .el-tag + .el-tag {

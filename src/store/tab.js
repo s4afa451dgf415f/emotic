@@ -10,9 +10,14 @@ export default {
             label: '表情管理',
             icon: 's-home',
             url: 'admin/admin'
-        },] //用于控制菜单收展
+        }] ,//用于控制菜单收展
+        getCancelTokenList:[],
     },
     mutations: {
+        //canceltoken
+        setCancelTokenList(state,val){
+            state.getCancelTokenList=val
+        },
         //修改菜单方法
         collapseMenu(state) {
             state.isCollapse = !state.isCollapse
